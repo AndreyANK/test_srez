@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Тестирование: Испытание стали на срез</title>
+<style>
+  * { box-sizing: border-box; font-family: 'Segoe UI', Arial, sans-serif; }
+  body {
+    margin: 0; padding: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+  }
+  .container {
+    max-width: 800px; margin: 0 auto;
+    background: #fff; border-radius: 12px;
+    padding: 30px; box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  }
+  h1 { color: #333; text-align: center; margin-top: 0; }
+  h2 { color: #555; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+  .form-group { margin-bottom: 15px; }
+  label { display: block; margin-bottom: 5px; font-weight: 600; color: #444; }
+  input[type="text"], input[type="password"], input[type="number"] {
+    width: 100%; padding: 10px; font-size: 15px;
+    border: 2px solid #ddd; border-radius: 6px;
+    transition: border-color 0.2s;
+  }
+  input:focus { border-color: #667eea; outline: none; }
+  button {
+    background: #667eea; color: white; border: none;
+    padding: 12px 30px; font-size: 16px; border-radius: 6px;
+    cursor: pointer; transition: background 0.2s;
+    margin: 5px;
+  }
+  button:hover { background: #5568d3; }
+  button:disabled { background: #aaa; cursor: not-allowed; }
+  button.pdf { background: #e74c3c; }
+  button.pdf:hover { background: #c0392b; }
+  button.email { background: #27ae60; }
+  button.email:hover { background: #229954; }
+  .timer {
+    position: fixed; top: 20px; right: 20px;
+    background: #ff4757; color: white;
+    padding: 10px 20px; border-radius: 8px;
+    font-size: 20px; font-weight: bold;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    z-index: 100;
+  }
+  .timer.warning { background: #ffa502; }
+  .timer.danger { background: #ff4757; animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity: 0.6; } }
+  .question {
+    background: #f8f9fa; padding: 20px;
+    border-radius: 8px; margin-bottom: 20px;
+    border-left: 4px solid #667eea;
+  }
+  .question-text { font-size: 16px; margin-bottom: 15px; font-weight: 600; }
+  .option {
+    display: block; padding: 10px 15px; margin: 8px 0;
+    background: white; border: 2px solid #e0e0e0;
+    border-radius: 6px; cursor: pointer;
+    transition: all 0.2s;
+  }
+  .option:hover { border-color: #667eea; background: #f0f3ff; }
+  .option input { margin-right: 10px; }
+  .option.selected { border-color: #667eea; background: #e8ecff; }
+  .numeric-input {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .numeric-input input {
+    max-width: 200px;
+  }
+  .unit { color: #666; font-weight: 600; }
+  .hint { font-size: 13px; color: #888; margin-top: 5px; font-style: italic; }
+  .result { text-align: center; padding: 30px; }
+  .score {
+    font-size: 48px; font-weight: bold;
+    margin: 20px 0;
+  }
+  .score.pass { color: #2ed573; }
+  .score.fail { color: #ff4757; }
+  .review-item {
+    text-align: left; padding: 15px;
+    margin: 10px 0; border-radius: 6px;
+  }
+  .review-item.correct { background: #d4edda; border-left: 4px solid #2ed573; }
+  .review-item.wrong { background: #f8d7da; border-left: 4px solid #ff4757; }
+  .progress {
+    height: 8px; background: #e0e0e0;
+    border-radius: 4px; overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .progress-bar {
+    height: 100%; background: #667eea;
+    transition: width 0.3s;
+  }
+  .error-msg {
+    color: #e74c3c; font-size: 14px;
+    margin-top: 10px; display: none;
+  }
+  .info-box {
+    background: #fff3cd; border-left: 4px solid #ffc107;
+    padding: 12px; border-radius: 6px; margin: 15px 0;
+    font-size: 14px;
+  }
+  .action-buttons {
+    display: flex; justify-content: center; flex-wrap: wrap;
+    margin: 20px 0;
+  }
+
+  @media print {
+    body { background: white; padding: 0; }
+    .container { box-shadow: none; max-width: 100%; }
+    .timer, .action-buttons, button { display: none !important; }
+    .review-item { page-break-inside: avoid; }
+    .print-header { display: block !important; text-align: center; margin-bottom: 20px; }
+  }
+  .print-header { display: none; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- ЭКРАН 0: Ввод пароля -->
+  <div id="screen-password" class="screen active">
+    <h1>🔐 Доступ к тестированию</h1>
+    <p style="text-align:center; color:#666;">Лабораторная работа №3: Испытание стали на срез</p>
+    <hr>
+    <div class="form-group">
+      <label>Введите пароль доступа *</label>
+      <input type="password" id="password" placeholder="Пароль" onkeypress="if(event.key==='Enter') checkPassword()">
+    </div>
+    <div class="error-msg" id="password-error">❌ Неверный пароль</div>
+    <button onclick="checkPassword()">Войти</button>
+    <p style="color:#999; font-size:12px; margin-top:20px;">Пароль выдается преподавателем</p>
+  </div>
+
+  <!-- ЭКРАН 1: Ввод данных -->
+  <div id="screen-start" class="screen">
+    <div class="print-header">
+      <h2>ПРОТОКОЛ ТЕСТИРОВАНИЯ</h2>
+      <p>Лабораторная работа №3: Испытание стали на срез</p>
+    </div>
+    <h1>🔬 Тестирование: Испытание стали на срез</h1>
+    <p style="text-align:center; color:#666;">Лабораторная работа №3</p>
+    <hr>
+    <h2>Заполните данные студента</h2>
+    <div class="form-group">
+      <label>ФИО *</label>
+      <input type="text" id="fio" placeholder="Иванов Иван Иванович">
+    </div>
+    <div class="form-group">
+      <label>Группа *</label>
+      <input type="text" id="group" placeholder="МТ-101">
+    </div>
+    <div class="form-group">
+      <label>Дата</label>
+      <input type="text" id="date" readonly>
+    </div>
+    <div class="info-box">
+      ⏱ Время на тестирование: <b>5 минут</b><br>
+      📝 Количество вопросов: <b>5</b> (включая расчетные)<br>
+      ✅ Проходной балл: <b>3 из 5</b><br>
+      🧮 Для расчетных задач используйте π ≈ 3,14<br>
+      🎲 Значения в расчетных задачах генерируются случайно
+    </div>
+    <button onclick="startTest()">Начать тестирование</button>
+  </div>
+
+  <!-- ЭКРАН 2: Тестирование -->
+  <div id="screen-test" class="screen">
+    <div class="timer" id="timer">05:00</div>
+    <h1>Тестирование</h1>
+    <div class="progress"><div class="progress-bar" id="progress"></div></div>
+    <div id="questions-container"></div>
+    <button onclick="finishTest()">Завершить тест</button>
+  </div>
+
+  <!-- ЭКРАН 3: Результаты -->
+  <div id="screen-result" class="screen">
+    <div class="result">
+      <div class="print-header">
+        <h2>ПРОТОКОЛ РЕЗУЛЬТАТОВ</h2>
+      </div>
+      <h1>Результаты тестирования</h1>
+      <div id="student-info" style="color:#666;"></div>
+      <div class="score" id="score-display"></div>
+      <div id="verdict"></div>
+      <hr>
+      <h2>Ваши ответы</h2>
+      <div id="review"></div>
+
+      <div class="action-buttons">
+        <button class="pdf" onclick="savePDF()">📄 Сохранить в PDF</button>
+        <button class="email" onclick="sendEmail()">📧 Отправить на почту</button>
+        <button onclick="location.reload()">🔄 Новая попытка</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ========== ПАРОЛЬ ДОСТУПА ==========
+const ACCESS_PASSWORD = "лаб3";
+
+// ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+function randInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function randFloat(min, max, decimals = 1) {
+  const val = Math.random() * (max - min) + min;
+  return parseFloat(val.toFixed(decimals));
+}
+
+function roundTo(num, decimals) {
+  return parseFloat(num.toFixed(decimals));
+}
+
+// ========== БАНК ВОПРОСОВ ==========
+const allQuestions = [
+  // ТЕОРЕТИЧЕСКИЕ ВОПРОСЫ
+  {
+    type: "choice",
+    q: "Как отличается объем металла, подвергнутого пластической деформации, при срезе и при разрыве?",
+    options: [
+      "При срезе объем пластически деформированного металла незначительный, а при разрыве значителен (особенно в зоне шейки)",
+      "При срезе пластическая деформация отсутствует полностью",
+      "При разрыве объем деформированного металла меньше, чем при срезе",
+      "Объем деформированного металла в обоих случаях строго одинаков"
+    ],
+    correct: 0
+  },
+  {
+    type: "choice",
+    q: "Выберите деталь, для которой характерна работа на сдвиг (срез)",
+    options: [
+      "Зубчатое колесо",
+      "Защитный кожух",
+      "Фундаментный болт (анкер)",
+      "Шпонка"
+    ],
+    correct: 3
+  },
+  {
+    type: "choice",
+    q: "Как вычисляется площадь среза (Aс) при схеме двойного среза?",
+    options: [
+      "Она равна площади поперечного сечения испытуемого образца",
+      "Она равна удвоенной площади поперечного сечения испытуемого образца",
+      "Она равна учетверенной площади поперечного сечения образца",
+      "Она равна площади боковой поверхности цилиндрической части образца"
+    ],
+    correct: 1
+  },
+  {
+    type: "choice",
+    q: "Из каких частей состоит образец, применяемый в данном опыте?",
+    options: [
+      "Только из одной цилиндрической части с резьбой на концах",
+      "Из двух цилиндрических частей: одна испытывается на срез, вторая (с двумя головками) – на растяжение",
+      "Из плоской пластины с двумя отверстиями по краям",
+      "Из трех частей: центральной втулки и двух упорных колец"
+    ],
+    correct: 1
+  },
+  {
+    type: "choice",
+    q: "Почему величина временного сопротивления на перерезывание определяется «условно»?",
+    options: [
+      "Потому что она вычисляется в предположении равномерного распределения напряжений по поперечному сечению, хотя в реальности оно неравномерно",
+      "Потому что приборы для измерения сдвига имеют низкую точность",
+      "Потому что сталь при срезе ведет себя как абсолютно хрупкий материал",
+      "Потому что испытание проводится без фиксации разрушающей нагрузки"
+    ],
+    correct: 0
+  },
+  {
+    type: "choice",
+    q: "Чему равно соотношение между модулями упругости Е и G для стали",
+    options: [
+      "Модули упругости имеют сопоставимые значения",
+      "Модуль сдвига примерно в 2 раза больше",
+      "Модуль сдвига примерно в 2,5 раза больше",
+      "Модуль сдвига примерно в 2,5 раза меньше"
+    ],
+    correct: 3
+  },
+  {
+    type: "choice",
+    q: "Как изменится напряжение среза, если площадь сечения образца Ac увеличить в два раза",
+    options: [
+      "Напряжение увеличится в два раза",
+      "Напряжение увеличится в 4 раза",
+      "Напряжение не изменится",
+      "Напряжение снизится в 4 раза"
+    ],
+    correct: 2
+  },
+  {
+    type: "choice",
+    q: "Как изменится сила при срезе заклепки, если ее диаметр увеличить в два раза",
+    options: [
+      "Сила не изменится",
+      "Сила вырастет в 2 раза",
+      "Сила вырастет в 4 раза",
+      "Сила вырастет в 3,14 раза"
+    ],
+    correct: 1
+  },
+  {
+    type: "choice",
+    q: "Как принято распределять касательные напряжения по сечению при срезе?",
+    options: [
+      "Напряжения распределяются линейно возрастая от центра к поверхности",
+      "Напряжения распределяются равномерно по сечению",
+      "Напряжения концентрируются в центре сечения",
+      "Напряжения растут по экспоненте от центра к поверхности"
+    ],
+    correct: 1
+  },
+  {
+    type: "choice",
+    q: "В каких единицах измерют касательные напряжения?",
+    options: [
+      "В ньютонах",
+      "В джоулях",
+      "В паскалях",
+      "В килограммах"
+    ],
+    correct: 2
+  },
+  {
+    type: "choice",
+    q: "Какое напряженное состояние называют чистым сдвигом?",
+    options: [
+      "Если нормальные напряжения равны касательным",
+      "В случае, когда касательные напряжения равны 0",
+      "В случае когда нормальные напряжения были равны 0",
+      "В случае когда нормальные и касательные напряжения равны 0"
+    ],
+    correct: 2
+  },
+ 
+  {
+    type: "choice",
+    q: "Какова основная цель данной лабораторной работы?",
+    options: [
+      "Определить модуль упругости стали при кручении",
+      "Изучить ударную вязкость металлических образцов",
+      "Изучить характер нагружения, установить временное сопротивление стали на перерезывание и сравнить его с временным сопротивлением при растяжении",
+      "Определить твердость стали по методу Бринелля"
+    ],
+    correct: 2
+  },
+  {
+    type: "choice",
+    q: "Чем визуально отличается плоскость разрушения стали при срезе от плоскости разрушения при разрыве?",
+    options: [
+      "При срезе плоскость имеет кристаллический вид и выраженную шейку",
+      "При срезе плоскость разрушения гладкая, а при разрыве – кристаллический вид",
+      "При срезе плоскость волокнистая и рваная, а при разрыве – зеркальная",
+      "Визуальных отличий нет"
+    ],
+    correct: 1
+  },
+  {
+    type: "choice",
+    q: "По какой схеме обычно проводят испытание стали на срез?",
+    options: [
+      "По схеме чистого изгиба",
+      "По схеме двойного среза",
+      "По схеме кручения тонкостенной трубы",
+      "По схеме одинарного среза с одновременным растяжением"
+    ],
+    correct: 1
+  },
+  {
+    type: "choice",
+    q: "Какую функцию выполняют стальные закаленные втулки, запрессованные в проушины приспособления?",
+    options: [
+      "Служат для крепления образца резьбой",
+      "Предотвращают смятие элементов приспособления",
+      "Обеспечивают охлаждение образца",
+      "Увеличивают трение для зажима"
+    ],
+    correct: 1
+  },
+  {
+    type: "choice",
+    q: "Какое соотношение между временным сопротивлением при срезе и разрыве для стали?",
+    options: [
+      "При срезе всегда больше, чем при разрыве",
+      "Они всегда строго равны",
+      "При срезе всегда меньше (примерно 60% от σв)",
+      "Соотношение непредсказуемо"
+    ],
+    correct: 2
+  },
+  {
+    type: "choice",
+    q: "На какой разрывной машине проводится данное испытание?",
+    options: ["УМ-5", "Р-50", "УМЭ-10", "Instron 5980"],
+    correct: 0
+  },
+  {
+    type: "choice",
+    q: "В каком диапазоне диаметров изготавливаются образцы для испытания на срез?",
+    options: ["1...5 мм", "6...20 мм", "25...50 мм", "50...100 мм"],
+    correct: 1
+  },
+
+  // РАСЧЕТНЫЕ ВОПРОСЫ С ГЕНЕРАЦИЕЙ СЛУЧАЙНЫХ ЗНАЧЕНИЙ
+  {
+    type: "numeric",
+    generate: function() {
+      // Вычисление τв по Q и d
+      const d = randInt(8, 18); // диаметр 8-18 мм
+      const tau_v = randInt(250, 400); // τв = 250-400 МПа
+      const Ac = 2 * (3.14 * d * d / 4); // площадь двойного среза
+      const Q = roundTo(tau_v * Ac / 1000, 2); // Q в кН
+      
+      return {
+        q: `Чему равно временное сопротивление стали на срез τв (в МПа), если при испытании по схеме двойного среза образца диаметром d = ${d} мм разрушающая нагрузка составила Q = ${Q} кН? (π ≈ 3,14)`,
+        unit: "МПа",
+        answer: tau_v,
+        tolerance: 3
+      };
+    }
+  },
+  {
+    type: "numeric",
+    generate: function() {
+      // Вычисление Q по τв и d
+      const d = randInt(8, 16); // диаметр 8-16 мм
+      const tau_v = randInt(280, 380); // τв = 280-380 МПа
+      const Ac = 2 * (3.14 * d * d / 4);
+      const Q = roundTo(tau_v * Ac / 1000, 2);
+      
+      return {
+        q: `Какое максимальное усилие среза Q (в кН) выдержит образец диаметром d = ${d} мм по схеме двойного среза, если τв = ${tau_v} МПа? (π ≈ 3,14)`,
+        unit: "кН",
+        answer: Q,
+        tolerance: 5
+      };
+    }
+  },
+  {
+    type: "numeric",
+    generate: function() {
+      // Вычисление d по Q и τв
+      const tau_v = randInt(280, 350); // τв = 280-350 МПа
+      const d = randInt(10, 16); // диаметр 10-16 мм
+      const Ac = 2 * (3.14 * d * d / 4);
+      const Q = roundTo(tau_v * Ac / 1000, 2);
+      
+      return {
+        q: `Какой диаметр d (в мм) должен иметь образец для испытания по схеме двойного среза, если Q = ${Q} кН, а τв = ${tau_v} МПа? (π ≈ 3,14)`,
+        unit: "мм",
+        answer: d,
+        tolerance: 3
+      };
+    }
+  },
+  {
+    type: "numeric",
+    generate: function() {
+      // Вычисление τв по σв (коэффициент 0.6)
+      const sigma_v = randInt(400, 700); // σв = 400-700 МПа
+      const tau_v = Math.round(sigma_v * 0.6);
+      
+      return {
+        q: `Временное сопротивление стали при растяжении σв = ${sigma_v} МПа. Чему приблизительно равно временное сопротивление этой стали на срез τв (в МПа) согласно теории чистого сдвига?`,
+        unit: "МПа",
+        answer: tau_v,
+        tolerance: 3
+      };
+    }
+  },
+  {
+    type: "numeric",
+    generate: function() {
+      // Вычисление площади среза Ac
+      const d = randInt(8, 20); // диаметр 8-20 мм
+      const Ac = roundTo(2 * (3.14 * d * d / 4), 2);
+      
+      return {
+        q: `Чему равна расчетная площадь среза Aс (в мм²) для образца диаметром d = ${d} мм при испытании по схеме двойного среза? (π ≈ 3,14)`,
+        unit: "мм²",
+        answer: Ac,
+        tolerance: 3
+      };
+    }
+  },
+  {
+    type: "numeric",
+    generate: function() {
+      // Вычисление τв по Q и Ac
+      const Ac = randInt(80, 200); // площадь 80-200 мм²
+      const tau_v = randInt(300, 500); // τв = 300-500 МПа
+      const Q = roundTo(tau_v * Ac / 1000, 2);
+      
+      return {
+        q: `Если разрушающее усилие при срезе Q = ${Q} кН, а площадь среза Aс = ${Ac} мм², чему равно напряжение среза τв (в МПа)?`,
+        unit: "МПа",
+        answer: tau_v,
+        tolerance: 3
+      };
+    }
+  }
+];
+
+// ========== ПЕРЕМЕННЫЕ ==========
+let questions = [];
+let timerInterval;
+let timeLeft = 300;
+let lastResult = null;
+
+// ========== ИНИЦИАЛИЗАЦИЯ ==========
+document.getElementById('date').value = new Date().toLocaleDateString('ru-RU');
+
+// ========== ПРОВЕРКА ПАРОЛЯ ==========
+function checkPassword() {
+  const pwd = document.getElementById('password').value;
+  const err = document.getElementById('password-error');
+  if (pwd === ACCESS_PASSWORD) {
+    err.style.display = 'none';
+    document.getElementById('screen-password').classList.remove('active');
+    document.getElementById('screen-start').classList.add('active');
+  } else {
+    err.style.display = 'block';
+    document.getElementById('password').value = '';
+  }
+}
+
+// ========== ВЫБОР ВОПРОСОВ ==========
+function selectQuestions() {
+  const numeric = allQuestions.filter(q => q.type === 'numeric').sort(() => Math.random() - 0.5);
+  const choice = allQuestions.filter(q => q.type === 'choice').sort(() => Math.random() - 0.5);
+  
+  // Генерируем 2 расчетных вопроса со случайными значениями
+  const generatedNumeric = numeric.slice(0, 2).map(q => q.generate());
+  
+  // Берем 3 теоретических вопроса
+  questions = [...generatedNumeric, ...choice.slice(0, 3)].sort(() => Math.random() - 0.5);
+}
+
+// ========== НАЧАЛО ТЕСТА ==========
+function startTest() {
+  const fio = document.getElementById('fio').value.trim();
+  const group = document.getElementById('group').value.trim();
+  if (!fio || !group) {
+    alert('Пожалуйста, заполните ФИО и группу!');
+    return;
+  }
+  selectQuestions();
+  renderQuestions();
+  document.getElementById('screen-start').classList.remove('active');
+  document.getElementById('screen-test').classList.add('active');
+  startTimer();
+}
+
+// ========== ОТРИСОВКА ВОПРОСОВ ==========
+function renderQuestions() {
+  const container = document.getElementById('questions-container');
+  container.innerHTML = '';
+  questions.forEach((q, idx) => {
+    const div = document.createElement('div');
+    div.className = 'question';
+    if (q.type === 'choice') {
+      div.innerHTML = `
+        <div class="question-text">${idx + 1}. ${q.q}</div>
+        ${q.options.map((opt, i) => `
+          <label class="option" onclick="selectOption(this)">
+            <input type="radio" name="q${idx}" value="${i}">
+            ${String.fromCharCode(65 + i)}) ${opt}
+          </label>
+        `).join('')}
+      `;
+    } else {
+      div.innerHTML = `
+        <div class="question-text">${idx + 1}. ${q.q}</div>
+        <div class="numeric-input">
+          <input type="number" step="any" id="num-${idx}" placeholder="Введите число" oninput="updateProgress()">
+          <span class="unit">${q.unit}</span>
+        </div>
+        <div class="hint">💡 Допускается погрешность ±${q.tolerance}% из-за округления</div>
+      `;
+    }
+    container.appendChild(div);
+  });
+}
+
+function selectOption(label) {
+  const radio = label.querySelector('input');
+  radio.checked = true;
+  const parent = label.parentElement;
+  parent.querySelectorAll('label.option').forEach(l => l.classList.remove('selected'));
+  label.classList.add('selected');
+  updateProgress();
+}
+
+function updateProgress() {
+  let answered = 0;
+  questions.forEach((q, idx) => {
+    if (q.type === 'choice') {
+      if (document.querySelector(`input[name="q${idx}"]:checked`)) answered++;
+    } else {
+      const val = document.getElementById(`num-${idx}`).value;
+      if (val !== '' && !isNaN(parseFloat(val))) answered++;
+    }
+  });
+  document.getElementById('progress').style.width = (answered / questions.length * 100) + '%';
+}
+
+// ========== ТАЙМЕР ==========
+function startTimer() {
+  updateTimerDisplay();
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimerDisplay();
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      alert('⏰ Время вышло! Тест будет завершен автоматически.');
+      finishTest();
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  const min = Math.floor(timeLeft / 60);
+  const sec = timeLeft % 60;
+  const display = `${String(min).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+  const timer = document.getElementById('timer');
+  timer.textContent = display;
+  timer.className = 'timer';
+  if (timeLeft <= 30) timer.classList.add('danger');
+  else if (timeLeft <= 60) timer.classList.add('warning');
+}
+
+// ========== ПРОВЕРКА ЧИСЛОВОГО ОТВЕТА ==========
+function checkNumeric(userVal, correctVal, tolerance) {
+  const u = parseFloat(userVal);
+  if (isNaN(u)) return false;
+  const diff = Math.abs(u - correctVal) / Math.abs(correctVal) * 100;
+  return diff <= tolerance;
+}
+
+// ========== ЗАВЕРШЕНИЕ ТЕСТА ==========
+function finishTest() {
+  clearInterval(timerInterval);
+  let score = 0;
+  const reviewHTML = [];
+  const answersLog = [];
+
+  questions.forEach((q, idx) => {
+    let userAnswerText = '';
+    let isCorrect = false;
+
+    if (q.type === 'choice') {
+      const selected = document.querySelector(`input[name="q${idx}"]:checked`);
+      const userAnswer = selected ? parseInt(selected.value) : -1;
+      userAnswerText = userAnswer >= 0
+        ? String.fromCharCode(65 + userAnswer) + ') ' + q.options[userAnswer]
+        : 'нет ответа';
+      isCorrect = userAnswer === q.correct;
+    } else {
+      const input = document.getElementById(`num-${idx}`);
+      const userVal = input.value.trim();
+      userAnswerText = userVal !== '' ? userVal + ' ' + q.unit : 'нет ответа';
+      isCorrect = checkNumeric(userVal, q.answer, q.tolerance);
+    }
+
+    if (isCorrect) score++;
+    answersLog.push({ question: q.q, answer: userAnswerText, correct: isCorrect });
+
+    reviewHTML.push(`
+      <div class="review-item ${isCorrect ? 'correct' : 'wrong'}">
+        <b>${idx + 1}. ${q.q}</b><br>
+        Ваш ответ: <b>${userAnswerText}</b><br>
+        ${isCorrect ? '✅ Верно' : '❌ Неверно'}
+      </div>
+    `);
+  });
+
+  const fio = document.getElementById('fio').value;
+  const group = document.getElementById('group').value;
+  const date = document.getElementById('date').value;
+
+  document.getElementById('student-info').innerHTML =
+    `<b>${fio}</b> | Группа: ${group} | Дата: ${date}`;
+  document.getElementById('score-display').textContent = `${score} / ${questions.length}`;
+  document.getElementById('score-display').className =
+    'score ' + (score >= 3 ? 'pass' : 'fail');
+  document.getElementById('verdict').innerHTML = score >= 3
+    ? '<h2 style="color:#2ed573">✅ ТЕСТ СДАН</h2>'
+    : '<h2 style="color:#ff4757">❌ ТЕСТ НЕ СДАН</h2>';
+  document.getElementById('review').innerHTML = reviewHTML.join('');
+
+  lastResult = { fio, group, date, score, total: questions.length, answers: answersLog };
+  saveResult(lastResult);
+
+  document.getElementById('screen-test').classList.remove('active');
+  document.getElementById('screen-result').classList.add('active');
+}
+
+// ========== СОХРАНЕНИЕ В localStorage ==========
+function saveResult(result) {
+  const history = JSON.parse(localStorage.getItem('testHistory') || '[]');
+  history.push(result);
+  localStorage.setItem('testHistory', JSON.stringify(history));
+}
+
+// ========== СОХРАНЕНИЕ В PDF ==========
+function savePDF() {
+  window.print();
+}
+
+// ========== ОТПРАВКА НА ПОЧТУ ==========
+function sendEmail() {
+  if (!lastResult) return;
+  const r = lastResult;
+
+  const subject = encodeURIComponent(`Результат тестирования: ${r.fio} (${r.group})`);
+
+  let body = `РЕЗУЛЬТАТ ТЕСТИРОВАНИЯ\n`;
+  body += `Лабораторная работа №3: Испытание стали на срез\n`;
+  body += `========================================\n\n`;
+  body += `ФИО: ${r.fio}\n`;
+  body += `Группа: ${r.group}\n`;
+  body += `Дата: ${r.date}\n`;
+  body += `Результат: ${r.score} из ${r.total}\n`;
+  body += `Статус: ${r.score >= 3 ? 'СДАНО' : 'НЕ СДАНО'}\n\n`;
+  body += `----------------------------------------\n`;
+  body += `ОТВЕТЫ СТУДЕНТА:\n`;
+  r.answers.forEach((a, i) => {
+    body += `\n${i + 1}. ${a.question}\n`;
+    body += `   Ответ: ${a.answer}\n`;
+    body += `   Результат: ${a.correct ? 'Верно' : 'Неверно'}\n`;
+  });
+  body += `\n========================================\n`;
+  body += `Отправлено автоматически из системы тестирования`;
+
+  const mailtoLink = `mailto:?subject=${subject}&body=${encodeURIComponent(body)}`;
+  window.location.href = mailtoLink;
+}
+</script>
+</body>
+</html>
